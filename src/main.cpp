@@ -45,7 +45,6 @@
 #include <main.h>
 #include <config.h>
 
-#define SERIAL_THROTTLE 50
 RF24 radio(cePin, csPin);
 RF24Network network(radio);
 QueueArray<CommandToSend> networkCommandQueue;
@@ -55,7 +54,7 @@ unsigned long timeOfLastSerial;
 
 void relayMessageSerial(ReceivedData data);
 
-void sendSerialMessage();
+void sendSerialData();
 
 void setup() {
     Serial.begin(115200);
@@ -82,7 +81,7 @@ void loop() {
     // send the current position over the network if time since last message = NETWORK_THROTTLE and pump is running.
 
     if (millis() - timeOfLastMessage > NETWORK_THROTTLE) sendNetworkMessage();
-    if (millis() - timeOfLastSerial > SERIAL_THROTTLE) sendSerialMessage();
+    if (millis() - timeOfLastSerial > SERIAL_THROTTLE) sendSerialData();
 
 
 }
@@ -112,18 +111,14 @@ void handleNetwork() {
     RF24NetworkHeader header;
     long message;
     network.read(header, &message, sizeof(message));
-    if (header.type == 'E') sendSerialError(static_cast<ErrorType>(message));
-    else dataQueue.enqueue({timeOfMessage, header, message});
+    switch (header.type){
+        case 'E': sendSerialError(static_cast<ErrorType>(message)); break;
+        default: dataQueue.enqueue({timeOfMessage, header, message}); break;
+    }
 }
 
 void relayMessageSerial(ReceivedData data) {
-    Serial.print(data.from);
-    Serial.print(" ");
-    Serial.print(data.time);
-    Serial.print(" ");
-    Serial.print(*data.type);
-    Serial.print(" ");
-    Serial.println(data.message);
+    Serial.println(data.toString());
 }
 
 //endregion
@@ -219,7 +214,7 @@ CommandToSend parseCommand(char *buffer) {
 
 //region Serial output
 
-void sendSerialMessage() {
+void sendSerialData() {
     if (!dataQueue.isEmpty()) {
         ReceivedData data = dataQueue.dequeue();
         relayMessageSerial(data);
@@ -238,32 +233,13 @@ void printCommandOverSerial(CommandToSend commandToSend, const char* messageHead
     Serial.print("---------------");
     Serial.print(messageHeading);
     Serial.println("---------------");
-    Serial.print("|messageType | ");
-    switch (commandToSend.messageType) {
-        case SINGLE: Serial.println("Single"); break;
-        case MULTI:  Serial.println("Multi");  break;
-    }
-    Serial.print("|to          | ");
-    Serial.println(commandToSend.header.to);
-    Serial.print("|header type | ");
-    Serial.println(commandToSend.header.type);
-    Serial.print("|speed       | ");
-    Serial.println(commandToSend.command.speed);
-    Serial.print("|go to       | ");
-    Serial.println(commandToSend.command.goTo);
+    Serial.print(commandToSend.toString());
 }
 
 //endregion
 ReceivedData::ReceivedData(unsigned long timeReceived, RF24NetworkHeader header, long message) {
     this->time = timeReceived;
-    switch (header.type) {
-        case 'P':
-            this->type = "P"; break;
-        case 'L':
-            this->type = "L"; break;
-        default:
-            this->type = reinterpret_cast<const char *>(header.type);
-    }
+    this->type = header.type;
     this->from = header.from_node;
     this->message = message;
 }

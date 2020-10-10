@@ -10,9 +10,10 @@
 #define cePin 10
 #define csPin 9
 
-// Network setup
+// TODO: tweak network throttle
 
 #define NETWORK_THROTTLE 1000
+#define SERIAL_THROTTLE 50
 
 static uint16_t node_address_set[16] = {00,
                                         01, 02, 03, 04, 05,
@@ -28,6 +29,6 @@ static uint16_t node_address_set[16] = {00,
  *
  */
 
-uint16_t this_node;
+uint16_t this_node = 0;
 
 #endif //PUMPMODULE_CONFIG_H

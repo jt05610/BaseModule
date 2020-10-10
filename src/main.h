@@ -26,13 +26,37 @@ struct ReceivedData{
     unsigned long time{};
     long message{};
     uint16_t from{};
-    const char *type{};
+    unsigned char type{};
+
+    String toString() const {
+        return (String)this->from + "\t" + (String)this->time + "\t" +
+               (String)this->type + "\t" + (String) this->message;
+    }
 };
 
 struct CommandToSend{
     Command         command{};
     Header          header{};
     MessageType     messageType{};
+
+    String toString() const {
+        String messageToSend = "";
+        messageToSend += "| single/multi | ";
+        switch (this->messageType) {
+            case SINGLE: messageToSend += "single\n"; break;
+            case MULTI:  messageToSend += "multi\n";  break;
+        }
+        messageToSend += "| to           | ";
+        messageToSend += (String)this->header.to + "\n";
+        messageToSend += "| header type  | ";
+        messageToSend += (String)this->header.type + "\n";
+        messageToSend += "| speed        | ";
+        messageToSend += (String)this->command.speed + "\n";
+        messageToSend += "| steps        | ";
+        messageToSend += (String)this->command.goTo + "\n";
+
+        return messageToSend;
+    }
 };
 
 void handleSerial();
